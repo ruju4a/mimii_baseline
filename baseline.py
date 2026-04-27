@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 """
- @file   baseline.py
- @brief  Baseline code of simple AE-based anomaly detection used experiment in [1].
- @author Ryo Tanabe and Yohei Kawaguchi (Hitachi Ltd.)
- Copyright (C) 2019 Hitachi, Ltd. All right reserved.
- [1] Harsh Purohit, Ryo Tanabe, Kenji Ichige, Takashi Endo, Yuki Nikaido, Kaori Suefusa, and Yohei Kawaguchi, "MIMII Dataset: Sound Dataset for Malfunctioning Industrial Machine Investigation and Inspection," arXiv preprint arXiv:1909.09347, 2019.
+@file baseline.py
+@brief Baseline code of simple AE-based anomaly detection used experiment in [1].
+@author Ryo Tanabe and Yohei Kawaguchi (Hitachi Ltd.)
+Copyright (C) 2019 Hitachi, Ltd. All right reserved.
+
+[1] Harsh Purohit, Ryo Tanabe, Kenji Ichige, Takashi Endo, Yuki Nikaido, Kaori Suefusa, and Yohei Kawaguchi,
+"MIMII Dataset: Sound Dataset for Malfunctioning Industrial Machine Investigation and Inspection,"
+arXiv preprint arXiv:1909.09347, 2019.
+
+Modified: dataset path set to /mnt/share/Data-MIMII-Dataset
 """
+
 ########################################################################
 # import default python-library
 ########################################################################
@@ -14,7 +20,6 @@ import os
 import sys
 import glob
 ########################################################################
-
 
 ########################################################################
 # import additional python-library
@@ -32,13 +37,11 @@ from keras.models import Model
 from keras.layers import Input, Dense
 ########################################################################
 
-
 ########################################################################
 # version
 ########################################################################
 __versions__ = "1.0.3"
 ########################################################################
-
 
 ########################################################################
 # setup STD I/O
@@ -53,7 +56,6 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 ########################################################################
-
 
 ########################################################################
 # visualizer
@@ -74,7 +76,7 @@ class visualizer(object):
         val_loss : list [ float ]
             validation loss time series.
 
-        return   : None
+        return : None
         """
         ax = self.fig.add_subplot(1, 1, 1)
         ax.cla()
@@ -96,9 +98,7 @@ class visualizer(object):
         """
         self.plt.savefig(name)
 
-
 ########################################################################
-
 
 ########################################################################
 # file I/O
@@ -168,22 +168,17 @@ def demux_wav(wav_name, channel=0):
         demuxed mono data
 
     Enabled to read multiple sampling rates.
-
     Enabled even one channel.
     """
     try:
         multi_channel_data, sr = file_load(wav_name)
         if multi_channel_data.ndim <= 1:
             return sr, multi_channel_data
-
         return sr, numpy.array(multi_channel_data)[channel, :]
-
     except ValueError as msg:
         logger.warning(f'{msg}')
 
-
 ########################################################################
-
 
 ########################################################################
 # feature extractor
@@ -260,7 +255,6 @@ def list_to_vector_array(file_list,
 
     # 02 loop of file_to_vectorarray
     for idx in tqdm(range(len(file_list)), desc=msg):
-
         vector_array = file_to_vector_array(file_list[idx],
                                             n_mels=n_mels,
                                             frames=frames,
@@ -288,20 +282,20 @@ def dataset_generator(target_dir,
     abnormal_dir_name : str (default="abnormal")
         directory name the abnormal data located in
     ext : str (default="wav")
-        filename extension of audio files 
+        filename extension of audio files
 
-    return : 
+    return :
         train_data : numpy.array( numpy.array( float ) )
             training dataset
             * dataset.shape = (total_dataset_size, feature_vector_length)
         train_files : list [ str ]
             file list for training
-        train_labels : list [ boolean ] 
+        train_labels : list [ boolean ]
             label info. list for training
             * normal/abnormal = 0/1
         eval_files : list [ str ]
             file list for evaluation
-        eval_labels : list [ boolean ] 
+        eval_labels : list [ boolean ]
             label info. list for evaluation
             * normal/abnormal = 0/1
     """
@@ -310,8 +304,8 @@ def dataset_generator(target_dir,
     # 01 normal list generate
     normal_files = sorted(glob.glob(
         os.path.abspath("{dir}/{normal_dir_name}/*.{ext}".format(dir=target_dir,
-                                                                 normal_dir_name=normal_dir_name,
-                                                                 ext=ext))))
+                                                                  normal_dir_name=normal_dir_name,
+                                                                  ext=ext))))
     normal_labels = numpy.zeros(len(normal_files))
     if len(normal_files) == 0:
         logger.exception("no_wav_data!!")
@@ -319,8 +313,8 @@ def dataset_generator(target_dir,
     # 02 abnormal list generate
     abnormal_files = sorted(glob.glob(
         os.path.abspath("{dir}/{abnormal_dir_name}/*.{ext}".format(dir=target_dir,
-                                                                   abnormal_dir_name=abnormal_dir_name,
-                                                                   ext=ext))))
+                                                                    abnormal_dir_name=abnormal_dir_name,
+                                                                    ext=ext))))
     abnormal_labels = numpy.ones(len(abnormal_files))
     if len(abnormal_files) == 0:
         logger.exception("no_wav_data!!")
@@ -330,14 +324,13 @@ def dataset_generator(target_dir,
     train_labels = normal_labels[len(abnormal_files):]
     eval_files = numpy.concatenate((normal_files[:len(abnormal_files)], abnormal_files), axis=0)
     eval_labels = numpy.concatenate((normal_labels[:len(abnormal_files)], abnormal_labels), axis=0)
+
     logger.info("train_file num : {num}".format(num=len(train_files)))
-    logger.info("eval_file  num : {num}".format(num=len(eval_files)))
+    logger.info("eval_file num : {num}".format(num=len(eval_files)))
 
     return train_files, train_labels, eval_files, eval_labels
 
-
 ########################################################################
-
 
 ########################################################################
 # keras model
@@ -348,6 +341,7 @@ def keras_model(inputDim):
     the model based on the simple dense auto encoder (64*64*8*64*64)
     """
     inputLayer = Input(shape=(inputDim,))
+
     h = Dense(64, activation="relu")(inputLayer)
     h = Dense(64, activation="relu")(h)
     h = Dense(8, activation="relu")(h)
@@ -357,18 +351,27 @@ def keras_model(inputDim):
 
     return Model(inputs=inputLayer, outputs=h)
 
-
 ########################################################################
-
 
 ########################################################################
 # main
 ########################################################################
 if __name__ == "__main__":
 
+    # ---------------------------------------------------------------
+    # MODIFICATION: dataset path overridden to shared mounted drive.
+    # The original code read base_directory from baseline.yaml.
+    # Here we force it to /mnt/share/Data-MIMII-Dataset so you don't
+    # need to edit baseline.yaml.
+    # ---------------------------------------------------------------
+    DATASET_BASE_DIR = "/mnt/share/Data-MIMII-Dataset"
+
     # load parameter yaml
     with open("baseline.yaml") as stream:
         param = yaml.safe_load(stream)
+
+    # Override base_directory with the shared drive path
+    param["base_directory"] = DATASET_BASE_DIR
 
     # make output directory
     os.makedirs(param["pickle_directory"], exist_ok=True)
@@ -381,46 +384,61 @@ if __name__ == "__main__":
     # load base_directory list
     dirs = sorted(glob.glob(os.path.abspath("{base}/*/*/*".format(base=param["base_directory"]))))
 
+    if len(dirs) == 0:
+        logger.error("No directories found under: {}".format(DATASET_BASE_DIR))
+        logger.error("Expected structure: {base}/{db}/{machine_type}/{machine_id}/")
+        sys.exit(1)
+
+    logger.info("Found {} target directories under {}".format(len(dirs), DATASET_BASE_DIR))
+
     # setup the result
-    result_file = "{result}/{file_name}".format(result=param["result_directory"], file_name=param["result_file"])
+    result_file = "{result}/{file_name}".format(result=param["result_directory"],
+                                                file_name=param["result_file"])
     results = {}
 
     # loop of the base directory
     for dir_idx, target_dir in enumerate(dirs):
         print("\n===========================")
-        print("[{num}/{total}] {dirname}".format(dirname=target_dir, num=dir_idx + 1, total=len(dirs)))
+        print("[{num}/{total}] {dirname}".format(dirname=target_dir,
+                                                  num=dir_idx + 1,
+                                                  total=len(dirs)))
 
-        # dataset param        
+        # dataset param
         db = os.path.split(os.path.split(os.path.split(target_dir)[0])[0])[1]
         machine_type = os.path.split(os.path.split(target_dir)[0])[1]
         machine_id = os.path.split(target_dir)[1]
 
         # setup path
         evaluation_result = {}
-        train_pickle = "{pickle}/train_{machine_type}_{machine_id}_{db}.pickle".format(pickle=param["pickle_directory"],
-                                                                                       machine_type=machine_type,
-                                                                                       machine_id=machine_id, db=db)
+        train_pickle = "{pickle}/train_{machine_type}_{machine_id}_{db}.pickle".format(
+            pickle=param["pickle_directory"],
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
         eval_files_pickle = "{pickle}/eval_files_{machine_type}_{machine_id}_{db}.pickle".format(
-                                                                                       pickle=param["pickle_directory"],
-                                                                                       machine_type=machine_type,
-                                                                                       machine_id=machine_id,
-                                                                                       db=db)
+            pickle=param["pickle_directory"],
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
         eval_labels_pickle = "{pickle}/eval_labels_{machine_type}_{machine_id}_{db}.pickle".format(
-                                                                                       pickle=param["pickle_directory"],
-                                                                                       machine_type=machine_type,
-                                                                                       machine_id=machine_id,
-                                                                                       db=db)
-        model_file = "{model}/model_{machine_type}_{machine_id}_{db}.hdf5".format(model=param["model_directory"],
-                                                                                  machine_type=machine_type,
-                                                                                  machine_id=machine_id,
-                                                                                  db=db)
-        history_img = "{model}/history_{machine_type}_{machine_id}_{db}.png".format(model=param["model_directory"],
-                                                                                    machine_type=machine_type,
-                                                                                    machine_id=machine_id,
-                                                                                    db=db)
-        evaluation_result_key = "{machine_type}_{machine_id}_{db}".format(machine_type=machine_type,
-                                                                          machine_id=machine_id,
-                                                                          db=db)
+            pickle=param["pickle_directory"],
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
+        model_file = "{model}/model_{machine_type}_{machine_id}_{db}.hdf5".format(
+            model=param["model_directory"],
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
+        history_img = "{model}/history_{machine_type}_{machine_id}_{db}.png".format(
+            model=param["model_directory"],
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
+        evaluation_result_key = "{machine_type}_{machine_id}_{db}".format(
+            machine_type=machine_type,
+            machine_id=machine_id,
+            db=db)
 
         # dataset generator
         print("============== DATASET_GENERATOR ==============")
